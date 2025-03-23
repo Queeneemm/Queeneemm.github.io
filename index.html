@@ -47,7 +47,7 @@ async function fetchHeroes() {
             
             if (Array.isArray(data)) {
                 allHeroes = data;
-                localStorage.setItem("allHeroes", JSON.stringify(allHeroes)); // Сохраняем в кэш
+                localStorage.setItem("allHeroes", JSON.stringify(allHeroes));
                 console.log("Fetched heroes from API:", allHeroes);
                 renderHeroes();
             } else {
@@ -61,24 +61,27 @@ async function fetchHeroes() {
 
 async function fetchCounterpicksForSelectedHeroes() {
     try {
-        counterpicks = {}; // Очищаем старые данные
+        counterpicks = {}; 
         for (const hero of selectedHeroes) {
             const response = await fetch(`https://api.opendota.com/api/heroes/${hero.id}/matchups`);
             const matchups = await response.json();
-            
+
             counterpicks[hero.localized_name] = matchups
-                .filter(matchup => matchup.games_played > 10) // Фильтруем по количеству игр
-                .sort((a, b) => (b.wins / b.games_played) - (a.wins / a.games_played)) // Сортируем по проценту побед
-                .slice(0, 5) // Берем топ-5 контрпиков
+                .filter(matchup => matchup.games_played > 10)
+                .sort((a, b) => (b.wins / b.games_played) - (a.wins / a.games_played))
+                .slice(0, 5) 
                 .map(matchup => {
                     const counterHero = allHeroes.find(h => h.id === matchup.hero_id);
-                    return counterHero ? counterHero.localized_name : null;
+                    return {
+                        name: counterHero ? counterHero.localized_name : null,
+                        winrate: ((matchup.wins / matchup.games_played) * 100).toFixed(2) + "%" 
+                    };
                 })
-                .filter(name => name !== null);
+                .filter(counter => counter.name !== null);
             
-            console.log(`Counterpicks for ${hero.localized_name}:`, counterpicks[hero.localized_name]); // Проверка данных
+            console.log(`Counterpicks for ${hero.localized_name}:`, counterpicks[hero.localized_name]); 
         }
-        updateRecommendedHeroes(); // Обновляем список рекомендуемых героев
+        updateRecommendedHeroes();
     } catch (error) {
         console.error("Error fetching counterpicks:", error);
     }
@@ -150,7 +153,12 @@ function updateRecommendedHeroes() {
     let recommendedSet = new Set();
     selectedHeroes.forEach(hero => {
         if (counterpicks[hero.localized_name]) {
-            counterpicks[hero.localized_name].forEach(counter => recommendedSet.add(counter));
+            counterpicks[hero.localized_name].forEach(counter => {
+                recommendedSet.add({
+                    name: counter.name,
+                    winrate: counter.winrate
+                });
+            });
         }
     });
 
@@ -159,12 +167,16 @@ function updateRecommendedHeroes() {
 
     console.log("Recommended heroes:", Array.from(recommendedSet)); // Проверка данных
 
-    Array.from(recommendedSet).forEach(heroName => {
-        let hero = allHeroes.find(h => h.localized_name === heroName);
+    Array.from(recommendedSet).forEach(counter => {
+        let hero = allHeroes.find(h => h.localized_name === counter.name);
         if (hero) {
             let div = document.createElement("div");
             div.className = "recommended-hero";
-            div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
+            div.innerHTML = `
+                <img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'>
+                <br>${hero.localized_name}
+                <br><small>Winrate: ${counter.winrate}</small>
+            `;
             recommendedDiv.appendChild(div);
         }
     });
