@@ -28,90 +28,101 @@
     <div class="recommended-heroes" id="recommendedHeroes"></div>
 
     <script>
-        let allHeroes = [];
-        let selectedHeroes = [];
-        let counterpicks = {};
-        const imgBaseUrl = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
+let allHeroes = [];
+let selectedHeroes = [];
+let counterpicks = {};
+const imgBaseUrl = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
 
-        async function fetchHeroes() {
-            try {
-                const response = await fetch("https://api.opendota.com/api/heroes");
-                allHeroes = await response.json();
-                await fetchCounterpicks();
-                renderHeroes();
-            } catch (error) {
-                console.error("Error fetching heroes:", error);
-            }
+async function fetchHeroes() {
+    try {
+        const response = await fetch("https://api.opendota.com/api/heroes");
+        allHeroes = await response.json();
+        await fetchCounterpicks();
+        renderHeroes();
+    } catch (error) {
+        console.error("Error fetching heroes:", error);
+    }
+}
+
+async function fetchCounterpicks() {
+    try {
+        // Загружаем данные о контрпиках для каждого героя
+        for (let hero of allHeroes) {
+            const response = await fetch(`https://api.opendota.com/api/heroes/${hero.id}/matchups`);
+            const matchups = await response.json();
+            counterpicks[hero.localized_name] = matchups
+                .sort((a, b) => b.wins - a.wins) // Сортируем по количеству побед
+                .slice(0, 5) // Берем топ-5 контрпиков
+                .map(matchup => {
+                    const counterHero = allHeroes.find(h => h.id === matchup.hero_id);
+                    return counterHero ? counterHero.localized_name : null;
+                })
+                .filter(name => name !== null);
         }
+    } catch (error) {
+        console.error("Error fetching counterpicks:", error);
+    }
+}
 
-        async function fetchCounterpicks() {
-            try {
-                const response = await fetch("https://raw.githubusercontent.com/odota/dotaconstants/master/build/hero_lore.json");
-                counterpicks = await response.json();
-            } catch (error) {
-                console.error("Error fetching counterpicks:", error);
-            }
+function renderHeroes() {
+    const heroList = document.getElementById("heroList");
+    heroList.innerHTML = "";
+    allHeroes.forEach(hero => {
+        let div = document.createElement("div");
+        div.className = "hero";
+        div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
+        div.onclick = () => selectHero(hero);
+        heroList.appendChild(div);
+    });
+}
+
+function selectHero(hero) {
+    if (selectedHeroes.length < 5 && !selectedHeroes.some(h => h.id === hero.id)) {
+        selectedHeroes.push(hero);
+        updateSelectedHeroes();
+        updateRecommendedHeroes();
+    }
+}
+
+function updateSelectedHeroes() {
+    const selectedDiv = document.getElementById("selectedHeroes");
+    selectedDiv.innerHTML = "";
+    selectedHeroes.forEach(hero => {
+        let div = document.createElement("div");
+        div.className = "selected-hero";
+        div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
+        selectedDiv.appendChild(div);
+    });
+}
+
+function updateRecommendedHeroes() {
+    let recommendedSet = new Set();
+    selectedHeroes.forEach(hero => {
+        if (counterpicks[hero.localized_name]) {
+            counterpicks[hero.localized_name].forEach(counter => recommendedSet.add(counter));
         }
-
-        function renderHeroes() {
-            const heroList = document.getElementById("heroList");
-            heroList.innerHTML = "";
-            allHeroes.forEach(hero => {
-                let div = document.createElement("div");
-                div.className = "hero";
-                div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
-                div.onclick = () => selectHero(hero);
-                heroList.appendChild(div);
-            });
+    });
+    const recommendedDiv = document.getElementById("recommendedHeroes");
+    recommendedDiv.innerHTML = "";
+    Array.from(recommendedSet).forEach(heroName => {
+        let hero = allHeroes.find(h => h.localized_name === heroName);
+        if (hero) {
+            let div = document.createElement("div");
+            div.className = "recommended-hero";
+            div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
+            recommendedDiv.appendChild(div);
         }
+    });
+}
 
-        function selectHero(hero) {
-            if (selectedHeroes.length < 5 && !selectedHeroes.some(h => h.id === hero.id)) {
-                selectedHeroes.push(hero);
-                updateSelectedHeroes();
-                updateRecommendedHeroes();
-            }
-        }
+function filterHeroes() {
+    let search = document.querySelector(".search").value.toLowerCase();
+    document.querySelectorAll(".hero").forEach(heroDiv => {
+        heroDiv.style.display = heroDiv.textContent.toLowerCase().includes(search) ? "block" : "none";
+    });
+}
 
-        function updateSelectedHeroes() {
-            const selectedDiv = document.getElementById("selectedHeroes");
-            selectedDiv.innerHTML = "";
-            selectedHeroes.forEach(hero => {
-                let div = document.createElement("div");
-                div.className = "selected-hero";
-                div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
-                selectedDiv.appendChild(div);
-            });
-        }
-
-        function updateRecommendedHeroes() {
-            let recommendedSet = new Set();
-            selectedHeroes.forEach(hero => {
-                if (counterpicks[hero.localized_name]) {
-                    counterpicks[hero.localized_name].forEach(counter => recommendedSet.add(counter));
-                }
-            });
-            const recommendedDiv = document.getElementById("recommendedHeroes");
-            recommendedDiv.innerHTML = "";
-            Array.from(recommendedSet).forEach(heroName => {
-                let hero = allHeroes.find(h => h.localized_name === heroName);
-                if (hero) {
-                    let div = document.createElement("div");
-                    div.className = "recommended-hero";
-                    div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
-                    recommendedDiv.appendChild(div);
-                }
-            });
-        }
-
-        function filterHeroes() {
-            let search = document.querySelector(".search").value.toLowerCase();
-            document.querySelectorAll(".hero").forEach(heroDiv => {
-                heroDiv.style.display = heroDiv.textContent.toLowerCase().includes(search) ? "block" : "none";
-            });
-        }
-
-        fetchHeroes();
+fetchHeroes();
     </script>
 </body>
 </html>
