@@ -11,6 +11,7 @@
         .heroes { display: flex; flex-wrap: wrap; justify-content: center; }
         .hero { margin: 5px; padding: 10px; border: 1px solid #000; cursor: pointer; }
         .selected { font-weight: bold; color: red; }
+        .counterpicks { margin-top: 20px; font-weight: bold; color: green; }
     </style>
 </head>
 <body>
@@ -20,18 +21,31 @@
     <div id="selectedHeroes"></div>
     <h3>Available Heroes:</h3>
     <div class="heroes" id="heroList"></div>
+    <h3>Recommended Picks:</h3>
+    <div id="recommendedHeroes" class="counterpicks"></div>
 
     <script>
         let allHeroes = [];
         let selectedHeroes = [];
+        let counterpicks = {};
 
         async function fetchHeroes() {
             try {
                 const response = await fetch("https://api.opendota.com/api/heroes");
                 allHeroes = await response.json();
+                await fetchCounterpicks();
                 renderHeroes();
             } catch (error) {
                 console.error("Error fetching heroes:", error);
+            }
+        }
+
+        async function fetchCounterpicks() {
+            try {
+                const response = await fetch("https://raw.githubusercontent.com/odota/dotaconstants/master/build/hero_lore.json");
+                counterpicks = await response.json();
+            } catch (error) {
+                console.error("Error fetching counterpicks:", error);
             }
         }
 
@@ -51,12 +65,23 @@
             if (selectedHeroes.length < 5 && !selectedHeroes.includes(hero)) {
                 selectedHeroes.push(hero);
                 updateSelectedHeroes();
+                updateRecommendedHeroes();
             }
         }
 
         function updateSelectedHeroes() {
             const selectedDiv = document.getElementById("selectedHeroes");
             selectedDiv.innerHTML = selectedHeroes.join(", ");
+        }
+
+        function updateRecommendedHeroes() {
+            let recommendedSet = new Set();
+            selectedHeroes.forEach(hero => {
+                if (counterpicks[hero]) {
+                    counterpicks[hero].forEach(counter => recommendedSet.add(counter));
+                }
+            });
+            document.getElementById("recommendedHeroes").innerHTML = Array.from(recommendedSet).join(", ") || "No recommendations yet";
         }
 
         function filterHeroes() {
