@@ -36,10 +36,17 @@ const imgBaseUrl = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dot
 async function fetchHeroes() {
     try {
         const response = await fetch("https://api.opendota.com/api/heroes");
-        allHeroes = await response.json();
-        console.log("Fetched heroes:", allHeroes); // Проверка данных
-        await fetchCounterpicks();
-        renderHeroes();
+        const data = await response.json();
+        
+        // Проверяем, что данные — это массив
+        if (Array.isArray(data)) {
+            allHeroes = data;
+            console.log("Fetched heroes:", allHeroes); // Проверка данных
+            await fetchCounterpicks();
+            renderHeroes();
+        } else {
+            console.error("Expected an array of heroes, but got:", data);
+        }
     } catch (error) {
         console.error("Error fetching heroes:", error);
     }
@@ -47,10 +54,12 @@ async function fetchHeroes() {
 
 async function fetchCounterpicks() {
     try {
-        // Загружаем данные о контрпиках для каждого героя
-        for (let hero of allHeroes) {
+        // Ограничим количество запросов, чтобы избежать ошибки 429
+        for (let i = 0; i < Math.min(allHeroes.length, 5); i++) { // Обрабатываем только первые 5 героев
+            const hero = allHeroes[i];
             const response = await fetch(`https://api.opendota.com/api/heroes/${hero.id}/matchups`);
             const matchups = await response.json();
+            
             counterpicks[hero.localized_name] = matchups
                 .sort((a, b) => b.wins - a.wins) // Сортируем по количеству побед
                 .slice(0, 5) // Берем топ-5 контрпиков
@@ -69,13 +78,19 @@ async function fetchCounterpicks() {
 function renderHeroes() {
     const heroList = document.getElementById("heroList");
     heroList.innerHTML = "";
-    allHeroes.forEach(hero => {
-        let div = document.createElement("div");
-        div.className = "hero";
-        div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
-        div.onclick = () => selectHero(hero);
-        heroList.appendChild(div);
-    });
+    
+    // Проверяем, что allHeroes — это массив
+    if (Array.isArray(allHeroes)) {
+        allHeroes.forEach(hero => {
+            let div = document.createElement("div");
+            div.className = "hero";
+            div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
+            div.onclick = () => selectHero(hero);
+            heroList.appendChild(div);
+        });
+    } else {
+        console.error("allHeroes is not an array:", allHeroes);
+    }
 }
 
 function selectHero(hero) {
@@ -87,7 +102,7 @@ function selectHero(hero) {
 }
 
 function updateSelectedHeroes() {
-    const selectedDiv = document.getElementById("selectedHeroes"); // Исправлено: убрана лишняя кавычка
+    const selectedDiv = document.getElementById("selectedHeroes");
     selectedDiv.innerHTML = "";
     selectedHeroes.forEach(hero => {
         let div = document.createElement("div");
@@ -124,6 +139,7 @@ function filterHeroes() {
     });
 }
 
+fetchHeroes();
 fetchHeroes();
     </script>
 </body>
