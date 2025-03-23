@@ -33,29 +33,38 @@ let selectedHeroes = [];
 let counterpicks = {};
 const imgBaseUrl = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
 
+// Кэшируем список героев в localStorage
 async function fetchHeroes() {
-    try {
-        const response = await fetch("https://api.opendota.com/api/heroes");
-        const data = await response.json();
-        
-        if (Array.isArray(data)) {
-            allHeroes = data;
-            console.log("Fetched heroes:", allHeroes); // Проверка данных
-            await fetchCounterpicks();
-            renderHeroes();
-        } else {
-            console.error("Expected an array of heroes, but got:", data);
+    const cachedHeroes = localStorage.getItem("allHeroes");
+    
+    if (cachedHeroes) {
+        allHeroes = JSON.parse(cachedHeroes);
+        console.log("Loaded heroes from cache:", allHeroes);
+        renderHeroes();
+    } else {
+        try {
+            const response = await fetch("https://api.opendota.com/api/heroes");
+            const data = await response.json();
+            
+            if (Array.isArray(data)) {
+                allHeroes = data;
+                localStorage.setItem("allHeroes", JSON.stringify(allHeroes)); // Сохраняем в кэш
+                console.log("Fetched heroes from API:", allHeroes);
+                renderHeroes();
+            } else {
+                console.error("Expected an array of heroes, but got:", data);
+            }
+        } catch (error) {
+            console.error("Error fetching heroes:", error);
         }
-    } catch (error) {
-        console.error("Error fetching heroes:", error);
     }
 }
 
-async function fetchCounterpicks() {
+// Загружаем контрпики только для выбранных героев
+async function fetchCounterpicksForSelectedHeroes() {
     try {
-        // Загружаем данные о контрпиках для каждого героя
-        for (let i = 0; i < Math.min(allHeroes.length, 5); i++) { // Обрабатываем только первые 5 героев для тестирования
-            const hero = allHeroes[i];
+        counterpicks = {}; // Очищаем старые данные
+        for (const hero of selectedHeroes) {
             const response = await fetch(`https://api.opendota.com/api/heroes/${hero.id}/matchups`);
             const matchups = await response.json();
             
@@ -72,6 +81,7 @@ async function fetchCounterpicks() {
             
             console.log(`Counterpicks for ${hero.localized_name}:`, counterpicks[hero.localized_name]); // Проверка данных
         }
+        updateRecommendedHeroes(); // Обновляем список рекомендуемых героев
     } catch (error) {
         console.error("Error fetching counterpicks:", error);
     }
@@ -98,7 +108,7 @@ function selectHero(hero) {
     if (selectedHeroes.length < 5 && !selectedHeroes.some(h => h.id === hero.id)) {
         selectedHeroes.push(hero);
         updateSelectedHeroes();
-        updateRecommendedHeroes();
+        fetchCounterpicksForSelectedHeroes(); // Загружаем контрпики только для выбранных героев
     }
 }
 
