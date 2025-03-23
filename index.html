@@ -53,15 +53,16 @@ async function fetchHeroes() {
 
 async function fetchCounterpicks() {
     try {
-        // Обрабатываем только первые 5 героев для тестирования
-        for (let i = 0; i < Math.min(allHeroes.length, 5); i++) {
+        // Загружаем данные о контрпиках для каждого героя
+        for (let i = 0; i < Math.min(allHeroes.length, 5); i++) { // Обрабатываем только первые 5 героев для тестирования
             const hero = allHeroes[i];
             const response = await fetch(`https://api.opendota.com/api/heroes/${hero.id}/matchups`);
             const matchups = await response.json();
             
-            // Сохраняем только имена героев-контрпиков
+            // Сохраняем героев, которые контрят выбранного героя
             counterpicks[hero.localized_name] = matchups
-                .sort((a, b) => b.wins - a.wins) // Сортируем по количеству побед
+                .filter(matchup => matchup.games_played > 10) // Фильтруем по количеству игр
+                .sort((a, b) => (b.wins / b.games_played) - (a.wins / a.games_played)) // Сортируем по проценту побед
                 .slice(0, 5) // Берем топ-5 контрпиков
                 .map(matchup => {
                     const counterHero = allHeroes.find(h => h.id === matchup.hero_id);
