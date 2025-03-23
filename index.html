@@ -9,8 +9,11 @@
         body { font-family: Arial, sans-serif; text-align: center; }
         .search { margin: 10px; padding: 5px; width: 80%; }
         .heroes { display: flex; flex-wrap: wrap; justify-content: center; }
-        .hero { margin: 5px; padding: 10px; border: 1px solid #000; cursor: pointer; }
-        .selected { font-weight: bold; color: red; }
+        .hero { margin: 5px; padding: 10px; cursor: pointer; text-align: center; }
+        .hero img { width: 50px; height: 50px; display: block; margin: auto; }
+        .selected-heroes, .recommended-heroes { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 10px; }
+        .selected-hero, .recommended-hero { margin: 5px; text-align: center; }
+        .selected-hero img, .recommended-hero img { width: 60px; height: 60px; border-radius: 10px; }
         .counterpicks { margin-top: 20px; font-weight: bold; color: green; }
     </style>
 </head>
@@ -18,16 +21,17 @@
     <h2>Dota 2 Pick Assistant</h2>
     <input type="text" class="search" placeholder="Search hero..." oninput="filterHeroes()">
     <h3>Enemy Team:</h3>
-    <div id="selectedHeroes"></div>
+    <div class="selected-heroes" id="selectedHeroes"></div>
     <h3>Available Heroes:</h3>
     <div class="heroes" id="heroList"></div>
     <h3>Recommended Picks:</h3>
-    <div id="recommendedHeroes" class="counterpicks"></div>
+    <div class="recommended-heroes" id="recommendedHeroes"></div>
 
     <script>
         let allHeroes = [];
         let selectedHeroes = [];
         let counterpicks = {};
+        const imgBaseUrl = "https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/";
 
         async function fetchHeroes() {
             try {
@@ -55,14 +59,14 @@
             allHeroes.forEach(hero => {
                 let div = document.createElement("div");
                 div.className = "hero";
-                div.textContent = hero.localized_name;
-                div.onclick = () => selectHero(hero.localized_name);
+                div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
+                div.onclick = () => selectHero(hero);
                 heroList.appendChild(div);
             });
         }
 
         function selectHero(hero) {
-            if (selectedHeroes.length < 5 && !selectedHeroes.includes(hero)) {
+            if (selectedHeroes.length < 5 && !selectedHeroes.some(h => h.id === hero.id)) {
                 selectedHeroes.push(hero);
                 updateSelectedHeroes();
                 updateRecommendedHeroes();
@@ -71,17 +75,33 @@
 
         function updateSelectedHeroes() {
             const selectedDiv = document.getElementById("selectedHeroes");
-            selectedDiv.innerHTML = selectedHeroes.join(", ");
+            selectedDiv.innerHTML = "";
+            selectedHeroes.forEach(hero => {
+                let div = document.createElement("div");
+                div.className = "selected-hero";
+                div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
+                selectedDiv.appendChild(div);
+            });
         }
 
         function updateRecommendedHeroes() {
             let recommendedSet = new Set();
             selectedHeroes.forEach(hero => {
-                if (counterpicks[hero]) {
-                    counterpicks[hero].forEach(counter => recommendedSet.add(counter));
+                if (counterpicks[hero.localized_name]) {
+                    counterpicks[hero.localized_name].forEach(counter => recommendedSet.add(counter));
                 }
             });
-            document.getElementById("recommendedHeroes").innerHTML = Array.from(recommendedSet).join(", ") || "No recommendations yet";
+            const recommendedDiv = document.getElementById("recommendedHeroes");
+            recommendedDiv.innerHTML = "";
+            Array.from(recommendedSet).forEach(heroName => {
+                let hero = allHeroes.find(h => h.localized_name === heroName);
+                if (hero) {
+                    let div = document.createElement("div");
+                    div.className = "recommended-hero";
+                    div.innerHTML = `<img src='${imgBaseUrl + hero.name.replace("npc_dota_hero_", "")}.png' alt='${hero.localized_name}'><br>${hero.localized_name}`;
+                    recommendedDiv.appendChild(div);
+                }
+            });
         }
 
         function filterHeroes() {
