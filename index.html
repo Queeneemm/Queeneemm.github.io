@@ -38,7 +38,6 @@ async function fetchHeroes() {
         const response = await fetch("https://api.opendota.com/api/heroes");
         const data = await response.json();
         
-        // Проверяем, что данные — это массив
         if (Array.isArray(data)) {
             allHeroes = data;
             console.log("Fetched heroes:", allHeroes); // Проверка данных
@@ -54,12 +53,13 @@ async function fetchHeroes() {
 
 async function fetchCounterpicks() {
     try {
-        // Ограничим количество запросов, чтобы избежать ошибки 429
-        for (let i = 0; i < Math.min(allHeroes.length, 5); i++) { // Обрабатываем только первые 5 героев
+        // Обрабатываем только первые 5 героев для тестирования
+        for (let i = 0; i < Math.min(allHeroes.length, 5); i++) {
             const hero = allHeroes[i];
             const response = await fetch(`https://api.opendota.com/api/heroes/${hero.id}/matchups`);
             const matchups = await response.json();
             
+            // Сохраняем только имена героев-контрпиков
             counterpicks[hero.localized_name] = matchups
                 .sort((a, b) => b.wins - a.wins) // Сортируем по количеству побед
                 .slice(0, 5) // Берем топ-5 контрпиков
@@ -68,8 +68,9 @@ async function fetchCounterpicks() {
                     return counterHero ? counterHero.localized_name : null;
                 })
                 .filter(name => name !== null);
+            
+            console.log(`Counterpicks for ${hero.localized_name}:`, counterpicks[hero.localized_name]); // Проверка данных
         }
-        console.log("Fetched counterpicks:", counterpicks); // Проверка данных
     } catch (error) {
         console.error("Error fetching counterpicks:", error);
     }
@@ -79,7 +80,6 @@ function renderHeroes() {
     const heroList = document.getElementById("heroList");
     heroList.innerHTML = "";
     
-    // Проверяем, что allHeroes — это массив
     if (Array.isArray(allHeroes)) {
         allHeroes.forEach(hero => {
             let div = document.createElement("div");
@@ -119,8 +119,12 @@ function updateRecommendedHeroes() {
             counterpicks[hero.localized_name].forEach(counter => recommendedSet.add(counter));
         }
     });
+
     const recommendedDiv = document.getElementById("recommendedHeroes");
     recommendedDiv.innerHTML = "";
+
+    console.log("Recommended heroes:", Array.from(recommendedSet)); // Проверка данных
+
     Array.from(recommendedSet).forEach(heroName => {
         let hero = allHeroes.find(h => h.localized_name === heroName);
         if (hero) {
@@ -139,7 +143,6 @@ function filterHeroes() {
     });
 }
 
-fetchHeroes();
 fetchHeroes();
     </script>
 </body>
