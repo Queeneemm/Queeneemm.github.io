@@ -1,7 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dota 2 Pick Assistant</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .search { margin: 10px; padding: 5px; width: 80%; }
+        .heroes { display: flex; flex-wrap: wrap; justify-content: center; }
+        .hero { margin: 5px; padding: 10px; border: 1px solid #000; cursor: pointer; }
+        .selected { font-weight: bold; color: red; }
+    </style>
+</head>
 <body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
+    <h2>Dota 2 Pick Assistant</h2>
+    <input type="text" class="search" placeholder="Search hero..." oninput="filterHeroes()">
+    <h3>Enemy Team:</h3>
+    <div id="selectedHeroes"></div>
+    <h3>Available Heroes:</h3>
+    <div class="heroes" id="heroList"></div>
+
+    <script>
+        let allHeroes = ["Axe", "Pudge", "Invoker", "Phantom Assassin", "Shadow Fiend", "Crystal Maiden"];
+        let selectedHeroes = [];
+        
+        function renderHeroes() {
+            const heroList = document.getElementById("heroList");
+            heroList.innerHTML = "";
+            allHeroes.forEach(hero => {
+                let div = document.createElement("div");
+                div.className = "hero";
+                div.textContent = hero;
+                div.onclick = () => selectHero(hero);
+                heroList.appendChild(div);
+            });
+        }
+
+        function selectHero(hero) {
+            if (selectedHeroes.length < 5 && !selectedHeroes.includes(hero)) {
+                selectedHeroes.push(hero);
+                updateSelectedHeroes();
+            }
+        }
+
+        function updateSelectedHeroes() {
+            const selectedDiv = document.getElementById("selectedHeroes");
+            selectedDiv.innerHTML = selectedHeroes.join(", ");
+        }
+
+        function filterHeroes() {
+            let search = document.querySelector(".search").value.toLowerCase();
+            document.querySelectorAll(".hero").forEach(heroDiv => {
+                heroDiv.style.display = heroDiv.textContent.toLowerCase().includes(search) ? "block" : "none";
+            });
+        }
+
+        renderHeroes();
+    </script>
 </body>
 </html>
