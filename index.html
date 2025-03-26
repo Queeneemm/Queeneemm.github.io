@@ -12,6 +12,10 @@
       background: #0e0e0e;
       color: #fff;
     }
+    h2 {
+      margin-top: 2rem;
+      color: #ccc;
+    }
     .search { margin-bottom: 1rem; }
     .heroes-grid {
       display: grid;
@@ -21,6 +25,7 @@
     .hero, .recommendation {
       padding: 0.5rem;
       background: #1e1e1e;
+      border: 2px solid #444;
       border-radius: 8px;
       text-align: center;
       cursor: pointer;
@@ -30,10 +35,10 @@
       transform: scale(1.05);
     }
     .hero.selected {
-      border: 2px solid #f1c40f !important; /* жёлтый */
+      border: 2px solid #f1c40f !important;
     }
     .recommendation.best {
-      border: 2px solid #ffd700 !important; /* золотой */
+      border: 2px solid #ffd700 !important;
     }
     .hero img, .recommendation img {
       width: 80px;
@@ -62,12 +67,6 @@
     @keyframes fadeIn {
       to { opacity: 1; }
     }
-
-    /* Цвета по атрибутам */
-    .attr-strength { border: 2px solid #c0392b; }
-    .attr-agility { border: 2px solid #27ae60; }
-    .attr-intelligence { border: 2px solid #3498db; }
-    .attr-universal { border: 2px solid #9b59b6; }
   </style>
 </head>
 <body>
@@ -87,7 +86,7 @@
     <div id="recommendList" class="recommendations-grid"></div>
   </div>
 
-  <div class="heroes-grid" id="heroGrid"></div>
+  <div id="heroGrid"></div>
 
   <script type="module">
     import { counters } from './counters.js';
@@ -98,12 +97,38 @@
     const searchInput = document.getElementById('searchInput');
     let selectedHeroes = [];
 
-    const heroAttributes = {
-      strength: ["abaddon", "alchemist", "axe", "beastmaster", "bristleback", "centaur-warrunner", "chaos-knight", "clockwerk", "doom", "dragon-knight", "earth-spirit", "earthshaker", "elder-titan", "huskar", "kunkka", "legion-commander", "lifestealer", "mars", "night-stalker", "omniknight", "primal-beast", "pudge", "slardar", "spirit-breaker", "sven", "tidehunter", "timbersaw", "tiny", "tusk", "underlord", "undying", "wraith-king"],
-      agility: ["anti-mage", "arc-warden", "bloodseeker", "bounty-hunter", "broodmother", "clinkz", "drow-ranger", "ember-spirit", "faceless-void", "gyrocopter", "hoodwink", "juggernaut", "luna", "medusa", "meepo", "monkey-king", "morphling", "naga-siren", "nyx-assassin", "pangolier", "phantom-assassin", "phantom-lancer", "razor", "riki", "shadow-fiend", "slark", "sniper", "spectre", "templar-assassin", "terrorblade", "troll-warlord", "ursa", "vengeful-spirit", "venomancer", "viper", "visage", "weaver"],
-      intelligence: ["ancient-apparition", "bane", "batrider", "chen", "crystal-maiden", "dark-seer", "dark-willow", "dazzle", "death-prophet", "disruptor", "enchantress", "enigma", "grimstroke", "invoker", "jakiro", "keeper-of-the-light", "leshrac", "lich", "lina", "lion", "muerta", "nature's-prophet", "necrophos", "ogre-magi", "oracle", "outworld-destroyer", "pugna", "queen-of-pain", "rubick", "shadow-demon", "shadow-shaman", "silencer", "skywrath-mage", "storm-spirit", "techies", "tinker", "warlock", "windranger", "winter-wyvern", "witch-doctor", "zeus"],
-      universal: ["dawnbreaker", "io", "marci", "mirana", "snapfire", "void-spirit"]
-    };
+const heroAttributes = {
+  strength: [
+    "abaddon", "alchemist", "axe", "beastmaster", "bristleback", "centaur-warrunner",
+    "chaos-knight", "clockwerk", "doom", "dragon-knight", "earth-spirit", "earthshaker",
+    "elder-titan", "huskar", "kunkka", "legion-commander", "lifestealer", "mars",
+    "night-stalker", "omniknight", "primal-beast", "pudge", "sand-king", "slardar",
+    "spirit-breaker", "sven", "tidehunter", "timbersaw", "tiny", "tusk", "underlord",
+    "undying", "wraith-king", "brewmaster"
+  ],
+  agility: [
+    "anti-mage", "arc-warden", "bloodseeker", "bounty-hunter", "broodmother", "clinkz",
+    "drow-ranger", "ember-spirit", "faceless-void", "gyrocopter", "hoodwink", "juggernaut",
+    "luna", "medusa", "meepo", "monkey-king", "morphling", "naga-siren", "nyx-assassin",
+    "pangolier", "phantom-assassin", "phantom-lancer", "razor", "riki", "shadow-fiend",
+    "slark", "sniper", "spectre", "templar-assassin", "terrorblade", "troll-warlord",
+    "ursa", "vengeful-spirit", "venomancer", "viper", "visage", "weaver"
+  ],
+  intelligence: [
+    "ancient-apparition", "bane", "batrider", "chen", "crystal-maiden", "dark-seer",
+    "dark-willow", "dazzle", "death-prophet", "disruptor", "enchantress", "enigma",
+    "grimstroke", "invoker", "jakiro", "keeper-of-the-light", "leshrac", "lich",
+    "lina", "lion", "muerta", "natures-prophet", "necrophos", "ogre-magi",
+    "oracle", "outworld-destroyer", "pugna", "queen-of-pain", "rubick", "shadow-demon",
+    "shadow-shaman", "silencer", "skywrath-mage", "storm-spirit", "techies", "tinker",
+    "warlock", "windranger", "winter-wyvern", "witch-doctor", "zeus"
+  ],
+  universal: [
+    "dawnbreaker", "io", "marci", "mirana", "snapfire", "void-spirit",
+    "lone-druid", "lycan", "magnus", "phoenix", "puck", "ringmaster",
+    "treant-protector", "kez"
+  ]
+};
 
     const heroImageMap = {
       "anti-mage": "antimage",
@@ -137,28 +162,42 @@
       return hero.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     }
 
-    function getHeroAttribute(hero) {
-      if (heroAttributes.strength.includes(hero)) return "strength";
-      if (heroAttributes.agility.includes(hero)) return "agility";
-      if (heroAttributes.intelligence.includes(hero)) return "intelligence";
-      if (heroAttributes.universal.includes(hero)) return "universal";
-      return "unknown";
-    }
-
     function renderHeroes(filter = '') {
       heroGrid.innerHTML = '';
-      Object.keys(counters)
-        .filter(h => h.includes(filter.toLowerCase()))
-        .forEach(hero => {
+
+      const sections = [
+        { title: 'Strength', list: heroAttributes.strength },
+        { title: 'Agility', list: heroAttributes.agility },
+        { title: 'Intelligence', list: heroAttributes.intelligence },
+        { title: 'Universal', list: heroAttributes.universal }
+      ];
+
+      sections.forEach(section => {
+        const filtered = section.list.filter(hero =>
+          hero.includes(filter.toLowerCase())
+        );
+        if (filtered.length === 0) return;
+
+        const header = document.createElement('h2');
+        header.textContent = section.title;
+        heroGrid.appendChild(header);
+
+        const grid = document.createElement('div');
+        grid.className = 'heroes-grid';
+
+        filtered.forEach(hero => {
           const imgName = getHeroImageName(hero);
           const div = document.createElement('div');
-          div.className = 'hero attr-' + getHeroAttribute(hero) + (selectedHeroes.includes(hero) ? ' selected' : '');
+          div.className = 'hero' + (selectedHeroes.includes(hero) ? ' selected' : '');
           div.innerHTML = `
             <img src="images/heroes/${imgName}.png" alt="${hero}" onerror="this.onerror=null; this.src='images/heroes/default.png'" />
             <div class="hero-name">${formatHeroName(hero)}</div>`;
           div.onclick = () => toggleHero(hero);
-          heroGrid.appendChild(div);
+          grid.appendChild(div);
         });
+
+        heroGrid.appendChild(grid);
+      });
     }
 
     function toggleHero(hero) {
@@ -197,7 +236,7 @@
         const key = hero.toLowerCase().replace(/ /g, '-');
         const imgName = getHeroImageName(key);
         const div = document.createElement('div');
-        div.className = 'recommendation attr-' + getHeroAttribute(key) + (score === maxScore ? ' best' : '');
+        div.className = 'recommendation' + (score === maxScore ? ' best' : '');
         div.innerHTML = `
           <img src="images/heroes/${imgName}.png" alt="${hero}" onerror="this.onerror=null; this.src='images/heroes/default.png';" />
           <div class="recommendation-name">${formatHeroName(hero)}</div>
