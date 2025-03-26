@@ -15,6 +15,13 @@
     h2 {
       margin-top: 2rem;
       color: #ccc;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h2 img {
+      width: 20px;
+      height: 20px;
     }
     .search { margin-bottom: 1rem; }
     .heroes-grid {
@@ -51,9 +58,11 @@
       font-size: 0.9rem;
       text-transform: capitalize;
     }
-    .selected-heroes span {
-      margin-right: 0.5rem;
-      text-transform: capitalize;
+    .selected-heroes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
     }
     .recommendations-grid {
       display: grid;
@@ -64,9 +73,25 @@
       opacity: 0;
       animation: fadeIn 0.4s ease forwards;
     }
+    #selectedList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: flex-start;
+    }
+
+    #selectedList .hero {
+      width: 80px;
+      flex-shrink: 0;
+    }
     @keyframes fadeIn {
       to { opacity: 1; }
     }
+
+    .attr-strength { border: 2px solid #c0392b; }
+    .attr-agility { border: 2px solid #27ae60; }
+    .attr-intelligence { border: 2px solid #3498db; }
+    .attr-universal { border: 2px solid #9b59b6; }
   </style>
 </head>
 <body>
@@ -91,68 +116,34 @@
   <script type="module">
     import { counters } from './counters.js';
 
+    const heroAttributes = {
+      strength: [,"alchemist","axe","bristleback","centaur-warrunner","chaos-knight","clockwerk","dawnbreaker","doom","dragon-knight","earth-spirit","earthshaker","elder-titan","huskar","kunkka","legion-commander","lifestealer","lycan","mars","night-stalker","ogre-magi","omniknight","phoenix","primal-beast","pudge","slardar","spirit-breaker","sven","tidehunter","timbersaw","tiny","treant-protector","tusk","underlord","undying","wraith-king"],
+      agility: ["anti-mage","bloodseeker","bounty-hunter","broodmother","clinkz","drow-ranger","ember-spirit","faceless-void","gyrocopter","hoodwink","juggernaut","kez","lone-druid","luna","medusa","meepo","mirana","monkey-king","morphling","naga-siren","phantom-assassin","phantom-lancer","razor","riki","shadow-fiend","slark","sniper","templar-assassin","terrorblade","troll-warlord","ursa","vengeful-spirit","viper","weaver"],
+      intelligence: ["ancient-apparition","chen","crystal-maiden","dark-seer","dark-willow","disruptor","enchantress","grimstroke","invoker","jakiro","keeper-of-the-light","leshrac","lich","lina","lion","muerta","necrophos","oracle","outworld-destroyer","puck","pugna","queen-of-pain","ringmaster","rubick","shadow-demon","shadow-shaman","silencer","skywrath-mage","storm-spirit","tinker","warlock","winter-wyvern","witch-doctor","zeus"],
+      universal: ["abaddon","arc-warden","bane","batrider","beastmaster","brewmaster","dazzle","death-prophet","enigma","io","magnus","marci","natures-prophet","nyx-assassin","pangolier","sand-king","snapfire","spectre","techies","venomancer","visage","void-spirit","windranger"]
+    };
+
+    const attrIcons = {
+      Strength: 'https://ru.dotabuff.com/assets/hero_str-c4c83daf6344eee5758e6634a6535394cdcf03a9a8292076260cbe42b76d1b4c.png',
+      Agility: 'https://i.playground.ru/p/MHxM7nT5o-v4KXLRvuPg9g.png?255x255',
+      Intelligence: 'https://i.playground.ru/p/jO2hMA9Hr2LmZbuijSBX3w.png?255x255',
+      Universal: 'https://ru.dotabuff.com/assets/hero_all.png'
+    };
+
+    const heroImageMap = {
+      "anti-mage": "antimage", "wraith-king": "skeleton_king", "queen-of-pain": "queenofpain",
+      "windranger": "windrunner", "zeus": "zuus", "clockwerk": "rattletrap", "doom": "doom_bringer",
+      "lifestealer": "life_stealer", "shadow-fiend": "nevermore", "vengeful-spirit": "vengefulspirit",
+      "io": "wisp", "keeper-of-the-light": "keeper_of_the_light", "natures-prophet": "furion",
+      "necrophos": "necrolyte", "outworld-destroyer": "obsidian_destroyer", "timbersaw": "shredder",
+      "underlord": "abyssal_underlord", "phantom-assassin": "phantom_assassin", "phantom-lancer": "phantom_lancer"
+    };
+
     const heroGrid = document.getElementById('heroGrid');
     const selectedList = document.getElementById('selectedList');
     const recommendList = document.getElementById('recommendList');
     const searchInput = document.getElementById('searchInput');
     let selectedHeroes = [];
-
-const heroAttributes = {
-  strength: [
-    "abaddon", "alchemist", "axe", "beastmaster", "bristleback", "centaur-warrunner",
-    "chaos-knight", "clockwerk", "doom", "dragon-knight", "earth-spirit", "earthshaker",
-    "elder-titan", "huskar", "kunkka", "legion-commander", "lifestealer", "mars",
-    "night-stalker", "omniknight", "primal-beast", "pudge", "sand-king", "slardar",
-    "spirit-breaker", "sven", "tidehunter", "timbersaw", "tiny", "tusk", "underlord",
-    "undying", "wraith-king", "brewmaster"
-  ],
-  agility: [
-    "anti-mage", "arc-warden", "bloodseeker", "bounty-hunter", "broodmother", "clinkz",
-    "drow-ranger", "ember-spirit", "faceless-void", "gyrocopter", "hoodwink", "juggernaut",
-    "luna", "medusa", "meepo", "monkey-king", "morphling", "naga-siren", "nyx-assassin",
-    "pangolier", "phantom-assassin", "phantom-lancer", "razor", "riki", "shadow-fiend",
-    "slark", "sniper", "spectre", "templar-assassin", "terrorblade", "troll-warlord",
-    "ursa", "vengeful-spirit", "venomancer", "viper", "visage", "weaver"
-  ],
-  intelligence: [
-    "ancient-apparition", "bane", "batrider", "chen", "crystal-maiden", "dark-seer",
-    "dark-willow", "dazzle", "death-prophet", "disruptor", "enchantress", "enigma",
-    "grimstroke", "invoker", "jakiro", "keeper-of-the-light", "leshrac", "lich",
-    "lina", "lion", "muerta", "natures-prophet", "necrophos", "ogre-magi",
-    "oracle", "outworld-destroyer", "pugna", "queen-of-pain", "rubick", "shadow-demon",
-    "shadow-shaman", "silencer", "skywrath-mage", "storm-spirit", "techies", "tinker",
-    "warlock", "windranger", "winter-wyvern", "witch-doctor", "zeus"
-  ],
-  universal: [
-    "dawnbreaker", "io", "marci", "mirana", "snapfire", "void-spirit",
-    "lone-druid", "lycan", "magnus", "phoenix", "puck", "ringmaster",
-    "treant-protector", "kez"
-  ]
-};
-
-    const heroImageMap = {
-      "anti-mage": "antimage",
-      "centaur-warrunner": "centaur",
-      "wraith-king": "skeleton_king",
-      "queen-of-pain": "queenofpain",
-      "windranger": "windrunner",
-      "zeus": "zuus",
-      "clockwerk": "rattletrap",
-      "doom": "doom_bringer",
-      "lifestealer": "life_stealer",
-      "magnus": "magnataur",
-      "shadow-fiend": "nevermore",
-      "vengeful-spirit": "vengefulspirit",
-      "io": "wisp",
-      "keeper-of-the-light": "keeper_of_the_light",
-      "natures-prophet": "furion",
-      "necrophos": "necrolyte",
-      "outworld-destroyer": "obsidian_destroyer",
-      "timbersaw": "shredder",
-      "underlord": "abyssal_underlord",
-      "phantom-assassin": "phantom_assassin",
-      "phantom-lancer": "phantom_lancer"
-    };
 
     function getHeroImageName(key) {
       return heroImageMap[key.toLowerCase()] || key.toLowerCase().replace(/-/g, '');
@@ -162,40 +153,43 @@ const heroAttributes = {
       return hero.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
     }
 
+    function getHeroAttribute(hero) {
+      for (const attr in heroAttributes) {
+        if (heroAttributes[attr].includes(hero)) return attr;
+      }
+      return "unknown";
+    }
+
     function renderHeroes(filter = '') {
       heroGrid.innerHTML = '';
-
       const sections = [
         { title: 'Strength', list: heroAttributes.strength },
         { title: 'Agility', list: heroAttributes.agility },
         { title: 'Intelligence', list: heroAttributes.intelligence },
         { title: 'Universal', list: heroAttributes.universal }
       ];
-
       sections.forEach(section => {
         const filtered = section.list.filter(hero =>
-          hero.includes(filter.toLowerCase())
+          hero.includes(filter.toLowerCase()) && !selectedHeroes.includes(hero)
         );
         if (filtered.length === 0) return;
-
         const header = document.createElement('h2');
-        header.textContent = section.title;
+        header.innerHTML = `<img src="${attrIcons[section.title]}" alt="${section.title}"> ${section.title}`;
         heroGrid.appendChild(header);
 
         const grid = document.createElement('div');
         grid.className = 'heroes-grid';
-
         filtered.forEach(hero => {
+          const attr = getHeroAttribute(hero);
           const imgName = getHeroImageName(hero);
           const div = document.createElement('div');
-          div.className = 'hero' + (selectedHeroes.includes(hero) ? ' selected' : '');
+          div.className = 'hero attr-' + attr;
           div.innerHTML = `
             <img src="images/heroes/${imgName}.png" alt="${hero}" onerror="this.onerror=null; this.src='images/heroes/default.png'" />
             <div class="hero-name">${formatHeroName(hero)}</div>`;
           div.onclick = () => toggleHero(hero);
           grid.appendChild(div);
         });
-
         heroGrid.appendChild(grid);
       });
     }
@@ -212,7 +206,19 @@ const heroAttributes = {
     }
 
     function updateSelected() {
-      selectedList.innerHTML = selectedHeroes.map(h => `<span>${formatHeroName(h)}</span>`).join(', ');
+      selectedList.innerHTML = '';
+      selectedHeroes.forEach(hero => {
+        const imgName = getHeroImageName(hero);
+        const attr = getHeroAttribute(hero);
+        const div = document.createElement('div');
+        div.className = 'hero attr-' + attr + ' selected';
+        div.style.width = '100px';
+        div.innerHTML = `
+          <img src="images/heroes/${imgName}.png" alt="${hero}" onerror="this.onerror=null; this.src='images/heroes/default.png'" />
+          <div class="hero-name">${formatHeroName(hero)}</div>`;
+        div.onclick = () => toggleHero(hero);
+        selectedList.appendChild(div);
+      });
     }
 
     function updateRecommendations() {
@@ -226,17 +232,17 @@ const heroAttributes = {
 
       const sorted = Array.from(recommendationMap.entries())
         .sort((a, b) => b[1] - a[1])
-        .filter(([hero]) => !selectedHeroes.includes(hero))
+        .filter(([hero]) => !selectedHeroes.includes(hero.toLowerCase()))
         .slice(0, 10);
 
       const maxScore = sorted.length > 0 ? sorted[0][1] : 0;
-
       recommendList.innerHTML = '';
       sorted.forEach(([hero, score]) => {
         const key = hero.toLowerCase().replace(/ /g, '-');
+        const attr = getHeroAttribute(key);
         const imgName = getHeroImageName(key);
         const div = document.createElement('div');
-        div.className = 'recommendation' + (score === maxScore ? ' best' : '');
+        div.className = 'recommendation attr-' + attr + (score === maxScore ? ' best' : '');
         div.innerHTML = `
           <img src="images/heroes/${imgName}.png" alt="${hero}" onerror="this.onerror=null; this.src='images/heroes/default.png';" />
           <div class="recommendation-name">${formatHeroName(hero)}</div>
